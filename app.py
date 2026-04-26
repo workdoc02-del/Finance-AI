@@ -206,7 +206,7 @@ def show_kpis(df):
 def show_sunburst(df):
     cat_totals = df.groupby(["category","description"])["amount"].sum().reset_index()
     # Limit descriptions to top 5 per category to avoid clutter
-   top = top[top["amount"] > 0].copy()
+       top = top[top["amount"] > 0].copy()
            .apply(lambda x: x.nlargest(5, "amount"))
            .reset_index(drop=True))
 
