@@ -206,7 +206,7 @@ def show_kpis(df):
 def show_sunburst(df):
     cat_totals = df.groupby(["category","description"])["amount"].sum().reset_index()
     # Limit descriptions to top 5 per category to avoid clutter
-    top = (cat_totals.groupby("category")
+   top = top[top["amount"] > 0].copy()
            .apply(lambda x: x.nlargest(5, "amount"))
            .reset_index(drop=True))
 
@@ -215,7 +215,7 @@ def show_sunburst(df):
         path=["category", "description"],
         values="amount",
         color="category",
-        color_discrete_sequence=px.colors.qualitative.Pastel,
+       color_discrete_sequence=px.colors.qualitative.Set3,
     )
     fig.update_traces(textinfo="label", insidetextorientation="radial")
     fig.update_layout(
