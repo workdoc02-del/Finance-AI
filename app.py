@@ -202,28 +202,44 @@ def show_kpis(df):
     with c4:
         st.metric("Avg Transaction", f"₹{avg_txn:,.2f}")
 
-# ── Sunburst / Spending Hierarchy ─────────────────────────────────────────────
+# ── Spending Hierarchy ───────────────────────────────────────────────────────
 def show_sunburst(df):
-    cat_totals = df.groupby(["category","description"])["amount"].sum().reset_index()
-    # Limit descriptions to top 5 per category to avoid clutter
-    top = (cat_totals.groupby("category")
-           .apply(lambda x: x.nlargest(5, "amount"))
-           .reset_index(drop=True))
-    top = top[top["amount"] > 0].copy()
-
-    fig = px.sunburst(
-        top,
-        path=["category", "description"],
-        values="amount",
-        color="category",
-        color_discrete_sequence=px.colors.qualitative.Set3,
-    )
-    fig.update_traces(textinfo="label", insidetextorientation="radial")
-    fig.update_layout(
-        margin=dict(t=10, b=10, l=10, r=10),
-        height=480,
-    )
-    return fig
+    try:
+        cat_totals = df.groupby("category")["amount"].sum().reset_index()
+        cat_totals = cat_totals[cat_totals["amount"] > 0].copy()
+        desc_totals = df.groupby(["category","description"])["amount"].sum().reset_index()
+        desc_totals = desc_totals[desc_totals["amount"] > 0].copy()
+        desc_top = (desc_totals.groupby("category")
+                    .apply(lambda x: x.nlargest(4, "amount"))
+                    .reset_index(drop=True))
+        labels = ["Total"]
+        parents = [""]
+        values = [float(cat_totals["amount"].sum())]
+        for _, row in cat_totals.iterrows():
+            labels.append(row["category"])
+            parents.append("Total")
+            values.append(float(row["amount"]))
+        for _, row in desc_top.iterrows():
+            short = str(row["description"])[:30]
+            label = f"{short}|{row['category'][:3]}"
+            labels.append(label)
+            parents.append(row["category"])
+            values.append(float(row["amount"]))
+        fig = go.Figure(go.Sunburst(
+            labels=labels, parents=parents, values=values,
+            branchvalues="total", textinfo="label",
+            insidetextorientation="radial",
+            marker=dict(colors=px.colors.qualitative.Set3 * 10),
+        ))
+        fig.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=480)
+        return fig
+    except Exception:
+        cat_totals = df.groupby("category")["amount"].sum().reset_index()
+        cat_totals = cat_totals[cat_totals["amount"] > 0].sort_values("amount", ascending=False)
+        fig = px.pie(cat_totals, names="category", values="amount", hole=0.4,
+                     color_discrete_sequence=px.colors.qualitative.Set3)
+        fig.update_layout(height=480, margin=dict(t=10, b=10, l=10, r=10))
+        return fig
 
 # ── Cash Flow Trend ───────────────────────────────────────────────────────────
 def show_cashflow(df):
